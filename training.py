@@ -1,21 +1,29 @@
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from datetime import datetime
 
 # Set random seed for reproducibility
 np.random.seed(20240608)
 torch.manual_seed(20240608)
 
+# Determine the device to use for computation (GPU if available, otherwise CPU)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f'Device: {device}')
 
-def input_data(batch_size, data):
-    input_array = np.zeros([batch_size, 16, 4, 4])  # PyTorch expects channels first
+
+def load_batch_data(batch_size, data):
+    """
+    Load a batch of input data and labels from the given data file.
+
+    Returns:
+        tuple: Tensors containing the input data and labels.
+    """
+    input_array = np.zeros([batch_size, 16, 4, 4])
     label_array = np.zeros([batch_size, 4])
 
     for i in range(batch_size):
-        str0 = data.readline().strip()
-        elements = str0.split(' ')
+        line = data.readline().strip()
+        elements = line.split(' ')
 
         for j in range(16):
             channel = int(elements[j + 1])
@@ -23,32 +31,15 @@ def input_data(batch_size, data):
 
         label_array[i][int(elements[18])] = 1  # One-hot encode the label
 
-    return torch.tensor(input_array, dtype=torch.float32), torch.tensor(label_array, dtype=torch.float32)
+    return torch.tensor(input_array, dtype=torch.float32).to(device), torch.tensor(label_array, dtype=torch.float32).to(
+        device)
 
 
-class CNN(nn.Module):
-    def __init__(self):
-        super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(16, 222, kernel_size=2, padding=1)
-        self.conv2 = nn.Conv2d(222, 222, kernel_size=2, padding=1)
-        self.conv3 = nn.Conv2d(222, 222, kernel_size=2, padding=1)
-        self.conv4 = nn.Conv2d(222, 222, kernel_size=2, padding=1)
-        self.conv5 = nn.Conv2d(222, 222, kernel_size=2, padding=1)
-        self.fc = nn.Linear(9 * 9 * 222, 4)
-
-    def forward(self, x):
-        x = torch.relu(self.conv1(x))
-        x = torch.relu(self.conv2(x))
-        x = torch.relu(self.conv3(x))
-        x = torch.relu(self.conv4(x))
-        x = torch.relu(self.conv5(x))
-        x = x.view(x.size(0), -1)
-        x = torch.softmax(self.fc(x), dim=1)
-        return x
-
-
-def train_model(model, criterion, optimizer, num_epochs, batch_size, data_size, data_path, log_file):
-    # Log training progress
+def train_model(model, criterion, optimizer, num_epochs, batch_size, data_size, data_path, model_name, log_file):
+    """
+    Train the given model using the provided training parameters.
+    """
+    # Log the start of training
     learn_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + ", Start training\n"
     with open(log_file, "a") as f:
         f.write(learn_log)
@@ -61,19 +52,16 @@ def train_model(model, criterion, optimizer, num_epochs, batch_size, data_size, 
         with open(log_file, "a") as f:
             f.write(epoch_log)
 
-        if epoch < 10:
-            file_name = data_path + "shuffle_0" + str(epoch) + "a" + ".txt"
-        else:
-            file_name = data_path + "shuffle_" + str(epoch) + "a" + ".txt"
-
+        # Determine the data file to read based on the epoch
+        file_name = data_path + f"shuffle_{epoch:02d}a.txt"
         data = open(file_name, 'r')
         num_processed = 0
 
         while num_processed < data_size:
             batch_start_time = datetime.now()
 
-            # Get input data and labels
-            image, label = input_data(batch_size, data)
+            # Load input data and labels
+            image, label = load_batch_data(batch_size, data)
 
             # Convert labels to class indices for PyTorch
             label_indices = torch.argmax(label, dim=1)
@@ -86,7 +74,7 @@ def train_model(model, criterion, optimizer, num_epochs, batch_size, data_size, 
             optimizer.step()
             num_processed += batch_size
 
-            if num_processed % 1000000 == 0:
+            if num_processed % data_size == 0:
                 batch_end_time = datetime.now()
                 time_elapsed = batch_end_time - batch_start_time
                 batch_log = f"Epoch {epoch + 1}, Processed {num_processed}/{data_size} samples, Batch time: {time_elapsed}\n"
@@ -108,7 +96,8 @@ def train_model(model, criterion, optimizer, num_epochs, batch_size, data_size, 
 
                     # Save model
                     if num_processed == data_size:
-                        torch.save(model.state_dict(), f'./c5_epoch_{epoch}_step_{num_processed}.pt')
+                        torch.save(model.state_dict(),
+                                   f'{model_name}_models/{model_name}_{epoch}_step_{num_processed}.pt')
 
         data.close()
         epoch_end_time = datetime.now()
@@ -117,13 +106,3 @@ def train_model(model, criterion, optimizer, num_epochs, batch_size, data_size, 
         print(epoch_log)
         with open(log_file, "a") as f:
             f.write(epoch_log)
-
-
-# Initialize the network, loss function, and optimizer
-model = CNN()
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters())
-
-# Example usage
-train_model(model, criterion, optimizer, num_epochs=60, batch_size=1000, data_size=10000000,
-            data_path='//TRdata/', log_file='log_cnn_5.txt')

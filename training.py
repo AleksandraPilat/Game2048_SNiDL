@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from datetime import datetime
+from pathlib import Path
 
 # Set random seed for reproducibility
 np.random.seed(20240608)
@@ -53,7 +54,9 @@ def train_model(model, criterion, optimizer, num_epochs, batch_size, data_size, 
             f.write(epoch_log)
 
         # Determine the data file to read based on the epoch
-        file_name = data_path + f"shuffle_{epoch:02d}a.txt"
+
+        root_dir = Path(__file__).parent.parent
+        file_name = root_dir / data_path / f"shuffle_{epoch:02d}a.txt"
         data = open(file_name, 'r')
         num_processed = 0
 
@@ -96,8 +99,9 @@ def train_model(model, criterion, optimizer, num_epochs, batch_size, data_size, 
 
                     # Save model
                     if num_processed == data_size:
-                        torch.save(model.state_dict(),
-                                   f'{model_name}_models/{model_name}_{epoch}_step_{num_processed}.pt')
+                        model_dir = root_dir / f'{model_name}_models'
+                        model_dir.mkdir(exist_ok=True)
+                        torch.save(model.state_dict(), model_dir / f'{model_name}_{epoch}_step_{num_processed}.pt')
 
         data.close()
         epoch_end_time = datetime.now()

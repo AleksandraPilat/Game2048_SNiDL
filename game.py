@@ -77,7 +77,7 @@ def DoUp(list1):
 
     for i in range(4):
         # Perform tile movement and merging for each column
-        (temp_score[i], isMoved[i], temp_B[0][i], temp_B[1][i], temp_B[2][i], temp_B[3][i]) \
+        (temp_score[i], isMoved[i], [temp_B[0][i], temp_B[1][i], temp_B[2][i], temp_B[3][i]]) \
             = MoveTile2([list1[0][i], list1[1][i], list1[2][i], list1[3][i]])
 
     return (temp_B, sum(temp_score), any(isMoved))
@@ -93,7 +93,7 @@ def DoRight(list1):
 
     for i in range(4):
         # Perform tile movement and merging for each row (right direction)
-        (temp_score[i], isMoved[i], temp_B[i][3], temp_B[i][2], temp_B[i][1], temp_B[i][0]) \
+        (temp_score[i], isMoved[i], [temp_B[i][3], temp_B[i][2], temp_B[i][1], temp_B[i][0]]) \
             = MoveTile2([list1[i][3], list1[i][2], list1[i][1], list1[i][0]])
 
     return (temp_B, sum(temp_score), any(isMoved))
@@ -109,7 +109,7 @@ def DoDown(list1):
 
     for i in range(4):
         # Perform tile movement and merging for each column (down direction)
-        (temp_score[i], isMoved[i], temp_B[3][i], temp_B[2][i], temp_B[1][i], temp_B[0][i]) \
+        (temp_score[i], isMoved[i], [temp_B[3][i], temp_B[2][i], temp_B[1][i], temp_B[0][i]]) \
             = MoveTile2([list1[3][i], list1[2][i], list1[1][i], list1[0][i]])
 
     return (temp_B, sum(temp_score), any(isMoved))
@@ -125,7 +125,7 @@ def DoLeft(list1):
 
     for i in range(4):
         # Perform tile movement and merging for each row (left direction)
-        (temp_score[i], isMoved[i], temp_B[i][0], temp_B[i][1], temp_B[i][2], temp_B[i][3]) \
+        (temp_score[i], isMoved[i], [temp_B[i][0], temp_B[i][1], temp_B[i][2], temp_B[i][3]]) \
             = MoveTile2([list1[i][0], list1[i][1], list1[i][2], list1[i][3]])
 
     return (temp_B, sum(temp_score), any(isMoved))
